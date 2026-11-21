@@ -99,15 +99,6 @@ SpawnHubFolder.Name = "SpawnHub"
 SpawnHubFolder.Parent = MapRoot
 
 CreatePart({
-	Name = "GrassGround",
-	Size = Vector3.new(340, 4, 340),
-	Position = Vector3.new(0, -2, 0),
-	Color = Color3.fromRGB(74, 222, 128),
-	Material = Enum.Material.SmoothPlastic,
-	Parent = SpawnHubFolder,
-})
-
-CreatePart({
 	Name = "CentralStonePlaza",
 	Size = Vector3.new(2, 140, 140),
 	CFrame = CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90)),
