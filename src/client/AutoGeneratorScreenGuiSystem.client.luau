@@ -87,15 +87,14 @@ ToastLabel.Visible = false
 ToastLabel.Parent = MainGui
 AddCornerAndStroke(ToastLabel, 12, Color3.fromRGB(56, 189, 248), 2)
 
+-- Toast lama (kotak panjang di tengah atas) dimatikan.
+-- Semua notifikasi diteruskan ke HUD baru supaya tidak dobel / spam.
+ToastLabel.Visible = false
+
 local function ShowToast(msg: string, isError: boolean?)
-	ToastLabel.Text = msg
-	ToastLabel.TextColor3 = if isError then Color3.fromRGB(248, 113, 113) else Color3.fromRGB(250, 204, 21)
-	ToastLabel.Visible = true
-	task.delay(2.8, function()
-		if ToastLabel.Text == msg then
-			ToastLabel.Visible = false
-		end
-	end)
+	if _G.RebirthShowToast then
+		_G.RebirthShowToast(msg, isError == true)
+	end
 end
 
 -- CURRENCY CONTAINER (KIRI ATAS)
@@ -320,33 +319,49 @@ local function CreateModalWindow(key: string, titleText: string, accentColor: Co
 	modal.Size = UDim2.fromOffset(640, 420)
 	modal.Position = UDim2.fromScale(0.5, 0.5)
 	modal.AnchorPoint = Vector2.new(0.5, 0.5)
-	modal.BackgroundColor3 = Color3.fromRGB(15, 23, 42)
+	modal.BackgroundColor3 = Color3.fromRGB(20, 24, 48)
 	modal.Visible = false
 	modal.Parent = MainGui
-	AddCornerAndStroke(modal, 18, accentColor, 3)
+	AddCornerAndStroke(modal, 20, Color3.fromRGB(255, 250, 240), 3)
+
+	local modalGradient = Instance.new("UIGradient")
+	modalGradient.Color = ColorSequence.new(Color3.fromRGB(34, 41, 82), Color3.fromRGB(14, 17, 34))
+	modalGradient.Rotation = 90
+	modalGradient.Parent = modal
 
 	local header = Instance.new("TextLabel")
 	header.Size = UDim2.new(1, -80, 0, 48)
 	header.Position = UDim2.fromOffset(22, 6)
 	header.BackgroundTransparency = 1
 	header.Font = Enum.Font.FredokaOne
-	header.TextColor3 = accentColor
+	header.TextColor3 = Color3.fromRGB(255, 250, 240)
 	header.TextSize = 22
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.Text = titleText
+	header.ZIndex = 2
 	header.Parent = modal
+
+	local headerAccent = Instance.new("Frame")
+	headerAccent.Size = UDim2.fromOffset(70, 4)
+	headerAccent.Position = UDim2.fromOffset(22, 50)
+	headerAccent.BackgroundColor3 = accentColor
+	headerAccent.BorderSizePixel = 0
+	headerAccent.ZIndex = 2
+	headerAccent.Parent = modal
+	AddCornerAndStroke(headerAccent, 2, Color3.new(1, 1, 1), 0)
 
 	local closeBtn = Instance.new("TextButton")
 	closeBtn.Size = UDim2.fromOffset(38, 38)
 	closeBtn.Position = UDim2.new(1, -14, 0, 12)
 	closeBtn.AnchorPoint = Vector2.new(1, 0)
-	closeBtn.BackgroundColor3 = Color3.fromRGB(239, 68, 68)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(235, 70, 70)
 	closeBtn.Font = Enum.Font.FredokaOne
 	closeBtn.TextColor3 = Color3.new(1, 1, 1)
-	closeBtn.TextSize = 20
-	closeBtn.Text = "X"
+	closeBtn.TextSize = 18
+	closeBtn.Text = "✕"
+	closeBtn.ZIndex = 3
 	closeBtn.Parent = modal
-	AddCornerAndStroke(closeBtn, 10, Color3.new(1, 1, 1), 1.5)
+	AddCornerAndStroke(closeBtn, 10, Color3.fromRGB(255, 250, 240), 2)
 	AttachButtonBounce(closeBtn, function()
 		modal.Visible = false
 	end)
@@ -387,11 +402,8 @@ OpenModalEvent.OnClientEvent:Connect(function(targetModal)
 		ToggleModal("Pets")
 		ShowToast("Mesin Crafting " .. tier .. " dibuka di menu Pets!")
 	elseif string.find(targetModal, "EggHatch_") then
-		local eggId = string.gsub(targetModal, "EggHatch_", "")
-		if _G.RebirthEggAndAuraController then
-			_G.RebirthEggAndAuraController.HatchOnce(eggId, 1)
-			ShowToast("Membuka " .. eggId .. "!")
-		end
+		-- Ditangani oleh ClickerUIClientController (modal gacha baru)
+		return
 	else
 		ToggleModal(targetModal)
 	end
@@ -448,6 +460,35 @@ for _, btnInfo in ipairs(SIDEBAR_BUTTONS) do
 		end
 	end)
 end
+
+-- ============================================================
+--  HUD LAMA DISEMBUNYIKAN
+--  ClickerJuicedHUD adalah satu-satunya HUD yang terlihat.
+--  Modal (Rebirth / Pets / Index / dst) tetap dipakai lewat _G.RebirthHUD.
+-- ============================================================
+CurrencyContainer.Visible = false
+PotionsHudContainer.Visible = false
+BottomActionFrame.Visible = false
+Sidebar.Visible = false
+MainGui.DisplayOrder = 40 -- modal lama tampil di atas HUD baru
+
+_G.RebirthHUD = {
+	ToggleModal = ToggleModal,
+	ShowToast = ShowToast,
+	CloseAll = function()
+		for _, frame in pairs(ActiveModalFrames) do
+			frame.Visible = false
+		end
+	end,
+	IsAnyOpen = function(): boolean
+		for _, frame in pairs(ActiveModalFrames) do
+			if frame.Visible then
+				return true
+			end
+		end
+		return false
+	end,
+}
 
 -- 1. MODAL REBIRTH
 local _, RebirthScroll = CreateModalWindow("Rebirth", "REBIRTH MENU", Color3.fromRGB(250, 204, 21))

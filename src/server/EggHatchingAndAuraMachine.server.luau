@@ -4,7 +4,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Config = require(ReplicatedStorage:WaitForChild("RebirthChampionsConfig"))
+local sharedFolder = ReplicatedStorage:WaitForChild("Shared", 5)
+local Config = require((sharedFolder and sharedFolder:WaitForChild("RebirthChampionsConfig", 5)) or ReplicatedStorage:WaitForChild("RebirthChampionsConfig"))
 
 export type AuraDefinition = {
 	Name: string,
@@ -67,6 +68,18 @@ local function GetOrCreateRemote(name: string, className: "RemoteEvent" | "Remot
 		r = Instance.new(className)
 		r.Name = name
 		r.Parent = Remotes
+	end
+	-- Buat mirror di ReplicatedStorage root untuk akses client langsung
+	local rootR = ReplicatedStorage:FindFirstChild(name)
+	if not rootR then
+		local alias = Instance.new(className)
+		alias.Name = name
+		alias.Parent = ReplicatedStorage
+		if className == "RemoteFunction" then
+			(alias :: RemoteFunction).OnServerInvoke = function(...)
+				return (r :: RemoteFunction).OnServerInvoke(...)
+			end
+		end
 	end
 	return r
 end
@@ -210,28 +223,42 @@ local function RollSinglePetFromEgg(eggData: any, totalLuck: number, ownsSecrets
 end
 
 HatchEggRemote.OnServerInvoke = function(player: Player, eggId: string, requestedHatchCount: number, autoDeleteRarities: { [string]: boolean }?)
-	local profile = if _G.GetPlayerProfile then _G.GetPlayerProfile(player) else nil
-	if not profile then
-		return { Success = false, Message = "Profil belum dimuat." }
-	end
-
 	local eggData = Config.Eggs[eggId]
 	if not eggData then
 		return { Success = false, Message = "Data Egg tidak ditemukan." }
 	end
 
-	local maxAllowedHatch = if profile.OwnedGamepasses and profile.OwnedGamepasses["ExtraEggs"] then 4 else 3
+	local profile = if _G.GetPlayerProfile then _G.GetPlayerProfile(player) else nil
+	local maxAllowedHatch = if profile and profile.OwnedGamepasses and profile.OwnedGamepasses["ExtraEggs"] then 4 else 3
 	local hatchCount = math.clamp(math.floor(requestedHatchCount or 1), 1, maxAllowedHatch)
 
 	local totalCost = eggData.Cost * hatchCount
-	if profile.Clicks < totalCost then
+	local availableClicks = if _G.GetPlayerClicks then _G.GetPlayerClicks(player) else (profile and profile.Clicks or 0)
+	if availableClicks < totalCost then
 		return {
 			Success = false,
 			Message = string.format("Clicks tidak cukup! Butuh %s Clicks untuk membuka %dx %s.", tostring(totalCost), hatchCount, eggId),
 		}
 	end
 
-	profile.Clicks -= totalCost
+	-- Potong Clicks
+	if _G.DeductPlayerClicks then
+		_G.DeductPlayerClicks(player, totalCost)
+	elseif profile then
+		profile.Clicks -= totalCost
+	end
+
+	if not profile then
+		profile = {
+			Clicks = availableClicks - totalCost,
+			Rebirths = 0,
+			Gems = 0,
+			PetInventory = {},
+			EggsHatched = 0,
+			Upgrades = {},
+			ActivePotions = {},
+		}
+	end
 
 	local totalLuck = GetTotalEggLuckMultiplier(profile)
 	local ownsSecretsHunter = profile.OwnedGamepasses and profile.OwnedGamepasses["SecretsHunter"] == true
@@ -298,6 +325,31 @@ HatchEggRemote.OnServerInvoke = function(player: Player, eggId: string, requeste
 		end
 
 		table.insert(hatchedResults, petRecord)
+	end
+
+	if _G.UpdateLeaderstats then
+		_G.UpdateLeaderstats(player)
+	end
+
+	-- Sinkronkan ke client UI
+	local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
+	local syncInv = if remotesFolder then remotesFolder:FindFirstChild("SyncInventoryEvent") :: RemoteEvent? else nil
+	if syncInv then
+		syncInv:FireClient(player, profile.PetInventory)
+	end
+
+	local dataUpdate = ReplicatedStorage:FindFirstChild("DataUpdate") :: RemoteEvent?
+	if dataUpdate then
+		local count = 0
+		local itemsSummary: { [string]: number } = {}
+		for _, pet in pairs(profile.PetInventory or {}) do
+			if pet and pet.Name then
+				itemsSummary[pet.Name] = (itemsSummary[pet.Name] or 0) + 1
+				count += 1
+			end
+		end
+		local cap = 20 + ((profile.Upgrades and profile.Upgrades.PetEquipSlots or 0) * 5)
+		dataUpdate:FireClient(player, profile.Clicks, cap, itemsSummary)
 	end
 
 	return {

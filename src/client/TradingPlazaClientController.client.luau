@@ -55,6 +55,7 @@ end
 local BoothGui = Instance.new("ScreenGui")
 BoothGui.Name = "RebirthTradingPlazaUI"
 BoothGui.ResetOnSpawn = false
+BoothGui.DisplayOrder = 45
 BoothGui.Parent = PlayerGui
 
 local MainModal = Instance.new("Frame")

@@ -325,14 +325,26 @@ for _, eggInfo in ipairs(SPAWN_EGGS_LAYOUT) do
 
 	AttachFloatingBillboard(eggMeshPart, eggInfo.Title, "Harga: " .. eggInfo.CostText, eggInfo.Color, 4.8)
 
-	local hatchPrompt = AttachPrompt(eggMeshPart, "Buka Menu Hatch Telur", eggInfo.Title, 11)
-	hatchPrompt.Triggered:Connect(function(player: Player)
+	local hatchPrompt = AttachPrompt(eggMeshPart, "Buka Menu Hatch Telur", eggInfo.Title, 16)
+	local function triggerEggHatch(player: Player)
 		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 		local openModalEvent = if remotes then remotes:FindFirstChild("OpenModalClientEvent") :: RemoteEvent? else nil
-		if openModalEvent then
-			openModalEvent:FireClient(player, "EggHatch_" .. eggInfo.EggId)
+		if not openModalEvent then
+			openModalEvent = ReplicatedStorage:FindFirstChild("OpenModalClientEvent") :: RemoteEvent?
 		end
-	end)
+		if not openModalEvent then
+			openModalEvent = Instance.new("RemoteEvent")
+			openModalEvent.Name = "OpenModalClientEvent"
+			openModalEvent.Parent = remotes or ReplicatedStorage
+		end
+		openModalEvent:FireClient(player, "EggHatch_" .. eggInfo.EggId)
+	end
+	hatchPrompt.Triggered:Connect(triggerEggHatch)
+
+	local clickDetector = Instance.new("ClickDetector")
+	clickDetector.MaxActivationDistance = 20
+	clickDetector.Parent = eggMeshPart
+	clickDetector.MouseClick:Connect(triggerEggHatch)
 
 	task.spawn(function()
 		local basePos = eggMeshPart.Position

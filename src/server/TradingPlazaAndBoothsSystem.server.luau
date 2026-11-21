@@ -4,7 +4,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Config = require(ReplicatedStorage:WaitForChild("RebirthChampionsConfig"))
+local sharedFolder = ReplicatedStorage:WaitForChild("Shared", 5)
+local Config = require((sharedFolder and sharedFolder:WaitForChild("RebirthChampionsConfig", 5)) or ReplicatedStorage:WaitForChild("RebirthChampionsConfig"))
 
 export type BoothListing = {
 	ListingId: string,

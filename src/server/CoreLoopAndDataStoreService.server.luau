@@ -5,7 +5,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
-local Config = require(ReplicatedStorage:WaitForChild("RebirthChampionsConfig"))
+local sharedFolder = ReplicatedStorage:WaitForChild("Shared", 5)
+local Config = require((sharedFolder and sharedFolder:WaitForChild("RebirthChampionsConfig", 5)) or ReplicatedStorage:WaitForChild("RebirthChampionsConfig"))
 
 export type PlayerProfileData = {
 	Clicks: number,
@@ -1224,6 +1225,9 @@ local function SavePlayerProfile(player: Player, removeFromMemory: boolean)
 end
 
 Players.PlayerAdded:Connect(LoadPlayerProfile)
+for _, p in ipairs(Players:GetPlayers()) do
+	task.spawn(LoadPlayerProfile, p)
+end
 Players.PlayerRemoving:Connect(function(player)
 	SavePlayerProfile(player, true)
 end)

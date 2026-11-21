@@ -31,6 +31,44 @@ local TradeIncoming = getOrCreateRemote("TradeIncoming")
 local TradeRespond = getOrCreateRemote("TradeRespond")
 local TradeResult = getOrCreateRemote("TradeResult")
 
+local function getOrCreateRemoteFunction(name: string): RemoteFunction
+	local existing = RS:FindFirstChild(name)
+	if existing and existing:IsA("RemoteFunction") then
+		return existing
+	end
+
+	local remotesFolder = RS:FindFirstChild("Remotes")
+	if remotesFolder then
+		local inFolder = remotesFolder:FindFirstChild(name)
+		if inFolder and inFolder:IsA("RemoteFunction") then
+			return inFolder
+		end
+	end
+
+	local r = Instance.new("RemoteFunction")
+	r.Name = name
+	r.Parent = RS
+	return r
+end
+
+local HatchEggRemoteServer = getOrCreateRemoteFunction("HatchEggFunction")
+
+-- Pastikan juga tersedia di dalam ReplicatedStorage.Remotes
+local remFolder = RS:FindFirstChild("Remotes")
+if not remFolder then
+	remFolder = Instance.new("Folder")
+	remFolder.Name = "Remotes"
+	remFolder.Parent = RS
+end
+if not remFolder:FindFirstChild("HatchEggFunction") then
+	local rInRem = Instance.new("RemoteFunction")
+	rInRem.Name = "HatchEggFunction"
+	rInRem.Parent = remFolder
+	rInRem.OnServerInvoke = function(plr, ...)
+		return HatchEggRemoteServer.OnServerInvoke(plr, ...)
+	end
+end
+
 -- Item drop config
 local DROPS = {
 	{ Name = "Common Pet", Weight = 70, Multiplier = 1.2, Rarity = "Common" },
@@ -92,6 +130,117 @@ local function pushData(plr: Player)
 	DataUpdate:FireClient(plr, clicks, capacity, items)
 end
 
+_G.GetPlayerClicks = function(plr: Player): number
+	local profile = if _G.GetPlayerProfile then _G.GetPlayerProfile(plr) else nil
+	if profile and profile.Clicks ~= nil then
+		return profile.Clicks
+	end
+	if localData[plr] then
+		return localData[plr].Clicks or 0
+	end
+	return 0
+end
+
+_G.DeductPlayerClicks = function(plr: Player, amount: number): boolean
+	local profile = if _G.GetPlayerProfile then _G.GetPlayerProfile(plr) else nil
+	if profile and profile.Clicks ~= nil then
+		if profile.Clicks >= amount then
+			profile.Clicks -= amount
+			if _G.UpdateLeaderstats then _G.UpdateLeaderstats(plr) end
+			pushData(plr)
+			return true
+		end
+		return false
+	end
+	if localData[plr] then
+		if (localData[plr].Clicks or 0) >= amount then
+			localData[plr].Clicks -= amount
+			pushData(plr)
+			return true
+		end
+		return false
+	end
+	return false
+end
+
+local EGG_PRICES = { Basic = 250, Forest = 5000, Mythic = 25000, Farm = 100000 }
+local EGG_PET_DROPS = {
+	Basic = {
+		{ Name = "Dog", Weight = 50, Rarity = "Common", Stat = 1.2 },
+		{ Name = "Cat", Weight = 35, Rarity = "Rare", Stat = 1.4 },
+		{ Name = "Bunny", Weight = 15, Rarity = "Epic", Stat = 2.0 },
+	},
+	Forest = {
+		{ Name = "Bear", Weight = 50, Rarity = "Common", Stat = 3.0 },
+		{ Name = "Wolf", Weight = 30, Rarity = "Rare", Stat = 4.5 },
+		{ Name = "Fox", Weight = 17, Rarity = "Epic", Stat = 6.0 },
+		{ Name = "Forest Dragon", Weight = 3, Rarity = "Legendary", Stat = 10.0 },
+	},
+	Mythic = {
+		{ Name = "Fox", Weight = 55, Rarity = "Common", Stat = 9.0 },
+		{ Name = "Golem", Weight = 30, Rarity = "Rare", Stat = 13.0 },
+		{ Name = "Hydra", Weight = 15, Rarity = "Epic", Stat = 18.0 },
+		{ Name = "Bat", Weight = 5, Rarity = "Legendary", Stat = 30.0 },
+	},
+	Farm = {
+		{ Name = "Pig", Weight = 50, Rarity = "Common", Stat = 40.0 },
+		{ Name = "Duck", Weight = 30, Rarity = "Rare", Stat = 65.0 },
+		{ Name = "Cow", Weight = 16, Rarity = "Epic", Stat = 100.0 },
+		{ Name = "Goat", Weight = 4.75, Rarity = "Legendary", Stat = 250.0 },
+		{ Name = "Apple Dragon", Weight = 0.25, Rarity = "Secret", Stat = 1200.0 },
+	},
+}
+
+HatchEggRemoteServer.OnServerInvoke = function(plr: Player, eggId: string, count: number)
+	count = math.clamp(math.floor(count or 1), 1, 3)
+	local costPerEgg = EGG_PRICES[eggId] or 250
+	local totalCost = costPerEgg * count
+	local userClicks = if _G.GetPlayerClicks then _G.GetPlayerClicks(plr) else 0
+
+	if userClicks < totalCost then
+		return { Success = false, Message = "Clicks tidak cukup! Butuh " .. totalCost .. " Clicks." }
+	end
+
+	if _G.DeductPlayerClicks then
+		_G.DeductPlayerClicks(plr, totalCost)
+	end
+
+	local results = {}
+	local pool = EGG_PET_DROPS[eggId] or EGG_PET_DROPS.Basic
+	for _ = 1, count do
+		local totalW = 0
+		for _, v in ipairs(pool) do totalW += v.Weight end
+		local r = math.random() * totalW
+		local chosen = pool[1]
+		for _, v in ipairs(pool) do
+			r -= v.Weight
+			if r <= 0 then chosen = v; break end
+		end
+
+		local petRecord = {
+			UUID = HttpService:GenerateGUID(false),
+			Name = chosen.Name,
+			Rarity = chosen.Rarity,
+			BaseMultiplier = chosen.Stat,
+			Level = 1,
+			Equipped = false,
+		}
+
+		local profile = if _G.GetPlayerProfile then _G.GetPlayerProfile(plr) else nil
+		if profile then
+			profile.PetInventory = profile.PetInventory or {}
+			profile.PetInventory[petRecord.UUID] = petRecord
+			profile.EggsHatched = (profile.EggsHatched or 0) + 1
+		elseif localData[plr] then
+			localData[plr].Items[chosen.Name] = (localData[plr].Items[chosen.Name] or 0) + 1
+		end
+		table.insert(results, petRecord)
+	end
+
+	pushData(plr)
+	return { Success = true, EggName = eggId, HatchedPets = results }
+end
+
 -- Roll drop berdasarkan weight
 local function rollDrop()
 	local totalWeight = 0
@@ -115,6 +264,16 @@ Players.PlayerAdded:Connect(function(plr)
 		pushData(plr)
 	end
 end)
+
+for _, plr in ipairs(Players:GetPlayers()) do
+	task.spawn(function()
+		localData[plr] = { Clicks = 0, Capacity = START_CAPACITY, Items = {} }
+		task.wait(0.5)
+		if plr.Parent then
+			pushData(plr)
+		end
+	end)
+end
 
 Players.PlayerRemoving:Connect(function(plr)
 	localData[plr] = nil
