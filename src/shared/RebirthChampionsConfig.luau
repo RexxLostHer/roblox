@@ -127,7 +127,7 @@ Config.Eggs = {
 			{ Name = "Bat", Weight = 5, Stat = 30.0 },
 		},
 	},
-	Farm = {
+	Divine = {
 		Cost = 100000,
 		Pets = {
 			{ Name = "Pig", Weight = 50, Stat = 40.0 },
@@ -138,6 +138,7 @@ Config.Eggs = {
 		},
 	},
 }
+Config.Eggs.Farm = Config.Eggs.Divine
 
 -- 4. Tap Skins Shop
 Config.TapSkins = {

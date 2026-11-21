@@ -27,7 +27,9 @@ local function CreatePart(props: {
 	Material: Enum.Material?,
 	Shape: Enum.PartType?,
 	Transparency: number?,
+	Reflectance: number?,
 	CanCollide: boolean?,
+	Anchored: boolean?,
 	Parent: Instance,
 }): Part
 	local p = Instance.new("Part")
@@ -44,8 +46,9 @@ local function CreatePart(props: {
 		p.Shape = props.Shape
 	end
 	p.Transparency = props.Transparency or 0
+	p.Reflectance = props.Reflectance or 0
 	p.CanCollide = if props.CanCollide ~= nil then props.CanCollide else true
-	p.Anchored = true
+	p.Anchored = if props.Anchored ~= nil then props.Anchored else true
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = props.Parent
@@ -292,10 +295,66 @@ EggsFolder.Name = "EggPedestals"
 EggsFolder.Parent = SpawnHubFolder
 
 local SPAWN_EGGS_LAYOUT = {
-	{ EggId = "Basic", Title = "Basic Egg", CostText = "250 Clicks", Color = Color3.fromRGB(248, 250, 252), Pos = Vector3.new(38, 0, -18) },
-	{ EggId = "Forest", Title = "Forest Egg", CostText = "5,000 Clicks", Color = Color3.fromRGB(74, 222, 128), Pos = Vector3.new(44, 0, -6) },
-	{ EggId = "Mythic", Title = "Mythic Egg", CostText = "25,000 Clicks", Color = Color3.fromRGB(192, 132, 252), Pos = Vector3.new(44, 0, 8) },
-	{ EggId = "Farm", Title = "Farm Egg", CostText = "100,000 Clicks", Color = Color3.fromRGB(250, 204, 21), Pos = Vector3.new(38, 0, 20) },
+	{
+		EggId = "Basic",
+		Title = "Basic Egg",
+		CostText = "250 Clicks",
+		Pos = Vector3.new(38, 0, -18),
+		PrimaryColor = Color3.fromRGB(226, 232, 240),
+		TopColor = Color3.fromRGB(241, 245, 249),
+		Material = Enum.Material.Metal,
+		Reflectance = 0.65,
+		AccentColor = Color3.fromRGB(203, 213, 225),
+		AccentMaterial = Enum.Material.Metal,
+		GlowColor = Color3.fromRGB(224, 242, 254),
+		LightBrightness = 1.2,
+		Theme = "Basic",
+	},
+	{
+		EggId = "Forest",
+		Title = "Forest Egg",
+		CostText = "5,000 Clicks",
+		Pos = Vector3.new(44, 0, -6),
+		PrimaryColor = Color3.fromRGB(34, 139, 34),
+		TopColor = Color3.fromRGB(46, 125, 50),
+		Material = Enum.Material.Grass,
+		Reflectance = 0.05,
+		AccentColor = Color3.fromRGB(101, 67, 33),
+		AccentMaterial = Enum.Material.WoodPlanks,
+		GlowColor = Color3.fromRGB(74, 222, 128),
+		LightBrightness = 1.8,
+		Theme = "Forest",
+	},
+	{
+		EggId = "Mythic",
+		Title = "Mythic Egg",
+		CostText = "25,000 Clicks",
+		Pos = Vector3.new(44, 0, 8),
+		PrimaryColor = Color3.fromRGB(48, 16, 78),
+		TopColor = Color3.fromRGB(88, 28, 135),
+		Material = Enum.Material.SmoothPlastic,
+		Reflectance = 0.35,
+		AccentColor = Color3.fromRGB(217, 70, 239),
+		AccentMaterial = Enum.Material.Neon,
+		GlowColor = Color3.fromRGB(192, 132, 252),
+		LightBrightness = 2.5,
+		Theme = "Mythic",
+	},
+	{
+		EggId = "Divine",
+		Title = "Divine Egg",
+		CostText = "100,000 Clicks",
+		Pos = Vector3.new(38, 0, 20),
+		PrimaryColor = Color3.fromRGB(255, 215, 0),
+		TopColor = Color3.fromRGB(254, 240, 138),
+		Material = Enum.Material.Foil,
+		Reflectance = 0.65,
+		AccentColor = Color3.fromRGB(253, 224, 71),
+		AccentMaterial = Enum.Material.Neon,
+		GlowColor = Color3.fromRGB(255, 215, 0),
+		LightBrightness = 3.5,
+		Theme = "Divine",
+	},
 }
 
 for _, eggInfo in ipairs(SPAWN_EGGS_LAYOUT) do
@@ -303,27 +362,331 @@ for _, eggInfo in ipairs(SPAWN_EGGS_LAYOUT) do
 	pedModel.Name = eggInfo.EggId .. "_Stand"
 	pedModel.Parent = EggsFolder
 
+	-- 1. Shrine Multi-Tier Pedestal
 	CreatePart({
-		Name = "PedestalBase",
-		Size = Vector3.new(2.2, 7.5, 7.5),
-		CFrame = CFrame.new(eggInfo.Pos + Vector3.new(0, 1.1, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(71, 85, 105),
+		Name = "PedestalBaseTier",
+		Size = Vector3.new(1.2, 8.4, 8.4),
+		CFrame = CFrame.new(eggInfo.Pos + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(30, 41, 59),
+		Material = Enum.Material.Slate,
 		Shape = Enum.PartType.Cylinder,
 		Parent = pedModel,
 	})
 
+	CreatePart({
+		Name = "PedestalThemedRim",
+		Size = Vector3.new(0.8, 7.6, 7.6),
+		CFrame = CFrame.new(eggInfo.Pos + Vector3.new(0, 1.5, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = eggInfo.GlowColor,
+		Material = if eggInfo.Theme == "Basic" then Enum.Material.Metal
+			elseif eggInfo.Theme == "Forest" then Enum.Material.Grass
+			else Enum.Material.Neon,
+		Reflectance = if eggInfo.Theme == "Basic" then 0.5 else 0,
+		Shape = Enum.PartType.Cylinder,
+		Parent = pedModel,
+	})
+
+	CreatePart({
+		Name = "PedestalTopPad",
+		Size = Vector3.new(0.4, 6.8, 6.8),
+		CFrame = CFrame.new(eggInfo.Pos + Vector3.new(0, 2.05, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(15, 23, 42),
+		Material = Enum.Material.Cobblestone,
+		Shape = Enum.PartType.Cylinder,
+		Parent = pedModel,
+	})
+
+	CreatePart({
+		Name = "PedestalRuneRing",
+		Size = Vector3.new(0.12, 4.4, 4.4),
+		CFrame = CFrame.new(eggInfo.Pos + Vector3.new(0, 2.3, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = eggInfo.GlowColor,
+		Material = Enum.Material.Neon,
+		Shape = Enum.PartType.Cylinder,
+		Parent = pedModel,
+	})
+
+	-- 2. Egg Lower Body (Root Anchor)
 	local eggMeshPart = CreatePart({
 		Name = "EggMesh",
-		Size = Vector3.new(4.8, 6.2, 4.8),
+		Size = Vector3.new(4.5, 5.2, 4.5),
 		Position = eggInfo.Pos + Vector3.new(0, 5.2, 0),
-		Color = eggInfo.Color,
-		Material = Enum.Material.SmoothPlastic,
-		Shape = Enum.PartType.Ball,
+		Color = eggInfo.PrimaryColor,
+		Material = eggInfo.Material,
+		Reflectance = eggInfo.Reflectance,
+		CanCollide = false,
+		Anchored = true,
 		Parent = pedModel,
 	})
 	eggMeshPart:SetAttribute("EggId", eggInfo.EggId)
 
-	AttachFloatingBillboard(eggMeshPart, eggInfo.Title, "Harga: " .. eggInfo.CostText, eggInfo.Color, 4.8)
+	local lowerMesh = Instance.new("SpecialMesh")
+	lowerMesh.MeshType = Enum.MeshType.Sphere
+	lowerMesh.Scale = Vector3.new(1, 1, 1)
+	lowerMesh.Parent = eggMeshPart
+
+	-- 3. Egg Upper Taper (Tapered Top to create realistic egg silhouette)
+	local eggTopPart = CreatePart({
+		Name = "EggTopDome",
+		Size = Vector3.new(3.7, 4.5, 3.7),
+		CFrame = eggMeshPart.CFrame * CFrame.new(0, 0.95, 0),
+		Color = eggInfo.TopColor,
+		Material = eggInfo.Material,
+		Reflectance = eggInfo.Reflectance,
+		CanCollide = false,
+		Anchored = false,
+		Parent = pedModel,
+	})
+	local topMesh = Instance.new("SpecialMesh")
+	topMesh.MeshType = Enum.MeshType.Sphere
+	topMesh.Scale = Vector3.new(1, 1, 1)
+	topMesh.Parent = eggTopPart
+
+	local topWeld = Instance.new("WeldConstraint")
+	topWeld.Part0 = eggMeshPart
+	topWeld.Part1 = eggTopPart
+	topWeld.Parent = eggTopPart
+
+	-- 4. Waist Accent Ring
+	local waistRing = CreatePart({
+		Name = "EggWaistRing",
+		Size = Vector3.new(0.38, 4.7, 4.7),
+		CFrame = eggMeshPart.CFrame * CFrame.Angles(0, 0, math.rad(90)),
+		Color = eggInfo.AccentColor,
+		Material = eggInfo.AccentMaterial,
+		Reflectance = if eggInfo.Theme == "Basic" then 0.7 else 0,
+		Shape = Enum.PartType.Cylinder,
+		CanCollide = false,
+		Anchored = false,
+		Parent = pedModel,
+	})
+	local waistWeld = Instance.new("WeldConstraint")
+	waistWeld.Part0 = eggMeshPart
+	waistWeld.Part1 = waistRing
+	waistWeld.Parent = waistRing
+
+	-- 5. Thematic Adornments & Effects
+	if eggInfo.Theme == "Basic" then
+		-- Silver Chrome: 4 polished studs along waist
+		for i = 1, 4 do
+			local angleRad = math.rad((i - 1) * 90)
+			local studOffset = Vector3.new(math.cos(angleRad) * 2.3, 0, math.sin(angleRad) * 2.3)
+			local stud = CreatePart({
+				Name = "SilverStud_" .. tostring(i),
+				Size = Vector3.new(0.65, 0.65, 0.65),
+				CFrame = eggMeshPart.CFrame * CFrame.new(studOffset),
+				Color = Color3.fromRGB(248, 250, 252),
+				Material = Enum.Material.Metal,
+				Reflectance = 0.85,
+				CanCollide = false,
+				Anchored = false,
+				Parent = pedModel,
+			})
+			local sMesh = Instance.new("SpecialMesh")
+			sMesh.MeshType = Enum.MeshType.Sphere
+			sMesh.Parent = stud
+			local sWeld = Instance.new("WeldConstraint")
+			sWeld.Part0 = eggMeshPart
+			sWeld.Part1 = stud
+			sWeld.Parent = stud
+		end
+
+		local pe = Instance.new("ParticleEmitter")
+		pe.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(203, 213, 225))
+		pe.Size = NumberSequence.new(0.45, 0.1)
+		pe.Lifetime = NumberRange.new(1.0, 1.8)
+		pe.Rate = 7
+		pe.Speed = NumberRange.new(1.2, 2.5)
+		pe.LightEmission = 0.85
+		pe.SpreadAngle = Vector2.new(45, 45)
+		pe.Parent = eggMeshPart
+
+	elseif eggInfo.Theme == "Forest" then
+		-- Forest Moss: 4 moss leaf accents on waist + vine angle ring
+		for i = 1, 4 do
+			local angleRad = math.rad((i - 1) * 90 + 45)
+			local leafOffset = Vector3.new(math.cos(angleRad) * 2.3, 0, math.sin(angleRad) * 2.3)
+			local leafStud = CreatePart({
+				Name = "MossStud_" .. tostring(i),
+				Size = Vector3.new(0.7, 0.5, 0.7),
+				CFrame = eggMeshPart.CFrame * CFrame.new(leafOffset),
+				Color = Color3.fromRGB(74, 222, 128),
+				Material = Enum.Material.Grass,
+				CanCollide = false,
+				Anchored = false,
+				Parent = pedModel,
+			})
+			local lMesh = Instance.new("SpecialMesh")
+			lMesh.MeshType = Enum.MeshType.Sphere
+			lMesh.Parent = leafStud
+			local lWeld = Instance.new("WeldConstraint")
+			lWeld.Part0 = eggMeshPart
+			lWeld.Part1 = leafStud
+			lWeld.Parent = leafStud
+		end
+
+		local vineRing = CreatePart({
+			Name = "VineRing",
+			Size = Vector3.new(0.25, 4.8, 4.8),
+			CFrame = eggMeshPart.CFrame * CFrame.Angles(math.rad(22), 0, math.rad(90)),
+			Color = Color3.fromRGB(22, 101, 52),
+			Material = Enum.Material.Grass,
+			Shape = Enum.PartType.Cylinder,
+			CanCollide = false,
+			Anchored = false,
+			Parent = pedModel,
+		})
+		local vWeld = Instance.new("WeldConstraint")
+		vWeld.Part0 = eggMeshPart
+		vWeld.Part1 = vineRing
+		vWeld.Parent = vineRing
+
+		local pe = Instance.new("ParticleEmitter")
+		pe.Color = ColorSequence.new(Color3.fromRGB(74, 222, 128), Color3.fromRGB(34, 197, 94))
+		pe.Size = NumberSequence.new(0.65, 0.2)
+		pe.Lifetime = NumberRange.new(1.6, 2.6)
+		pe.Rate = 14
+		pe.Speed = NumberRange.new(1.2, 3.2)
+		pe.LightEmission = 0.6
+		pe.SpreadAngle = Vector2.new(45, 45)
+		pe.Parent = eggMeshPart
+
+	elseif eggInfo.Theme == "Mythic" then
+		-- Mythic: Inclined Orbital Neon Ring + Glowing Violet Crystals
+		local orbitRing = CreatePart({
+			Name = "MythicOrbitalRing",
+			Size = Vector3.new(0.28, 5.8, 5.8),
+			CFrame = eggMeshPart.CFrame * CFrame.Angles(math.rad(35), math.rad(25), 0),
+			Color = Color3.fromRGB(192, 132, 252),
+			Material = Enum.Material.Neon,
+			Shape = Enum.PartType.Cylinder,
+			CanCollide = false,
+			Anchored = false,
+			Parent = pedModel,
+		})
+		local oWeld = Instance.new("WeldConstraint")
+		oWeld.Part0 = eggMeshPart
+		oWeld.Part1 = orbitRing
+		oWeld.Parent = orbitRing
+
+		for i = 1, 4 do
+			local angleRad = math.rad((i - 1) * 90)
+			local crystalOffset = Vector3.new(math.cos(angleRad) * 2.35, 0, math.sin(angleRad) * 2.35)
+			local crystal = CreatePart({
+				Name = "VioletCrystal_" .. tostring(i),
+				Size = Vector3.new(0.65, 0.65, 0.65),
+				CFrame = eggMeshPart.CFrame * CFrame.new(crystalOffset),
+				Color = Color3.fromRGB(232, 121, 249),
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+				Anchored = false,
+				Parent = pedModel,
+			})
+			local cMesh = Instance.new("SpecialMesh")
+			cMesh.MeshType = Enum.MeshType.Sphere
+			cMesh.Parent = crystal
+			local cWeld = Instance.new("WeldConstraint")
+			cWeld.Part0 = eggMeshPart
+			cWeld.Part1 = crystal
+			cWeld.Parent = crystal
+		end
+
+		local pe = Instance.new("ParticleEmitter")
+		pe.Color = ColorSequence.new(Color3.fromRGB(232, 121, 249), Color3.fromRGB(147, 51, 234))
+		pe.Size = NumberSequence.new(0.75, 0.15)
+		pe.Lifetime = NumberRange.new(1.2, 2.2)
+		pe.Rate = 18
+		pe.Speed = NumberRange.new(2.0, 4.5)
+		pe.LightEmission = 1.0
+		pe.SpreadAngle = Vector2.new(50, 50)
+		pe.Parent = eggMeshPart
+
+	elseif eggInfo.Theme == "Divine" then
+		-- Divine: Floating Golden Halo + Ornate Star Core + Double Particles
+		local divineHalo = CreatePart({
+			Name = "DivineHalo",
+			Size = Vector3.new(0.35, 3.8, 3.8),
+			CFrame = eggMeshPart.CFrame * CFrame.new(0, 3.5, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = Color3.fromRGB(254, 240, 138),
+			Material = Enum.Material.Neon,
+			Shape = Enum.PartType.Cylinder,
+			CanCollide = false,
+			Anchored = false,
+			Parent = pedModel,
+		})
+		local hWeld = Instance.new("WeldConstraint")
+		hWeld.Part0 = eggMeshPart
+		hWeld.Part1 = divineHalo
+		hWeld.Parent = divineHalo
+
+		local haloCore = CreatePart({
+			Name = "DivineHaloCore",
+			Size = Vector3.new(0.85, 0.85, 0.85),
+			CFrame = eggMeshPart.CFrame * CFrame.new(0, 3.5, 0),
+			Color = Color3.fromRGB(255, 255, 255),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			Anchored = false,
+			Parent = pedModel,
+		})
+		local coreMesh = Instance.new("SpecialMesh")
+		coreMesh.MeshType = Enum.MeshType.Sphere
+		coreMesh.Parent = haloCore
+		local coreWeld = Instance.new("WeldConstraint")
+		coreWeld.Part0 = eggMeshPart
+		coreWeld.Part1 = haloCore
+		coreWeld.Parent = haloCore
+
+		for i = 1, 4 do
+			local angleRad = math.rad((i - 1) * 90)
+			local gemOffset = Vector3.new(math.cos(angleRad) * 2.38, 0, math.sin(angleRad) * 2.38)
+			local gem = CreatePart({
+				Name = "DivineGem_" .. tostring(i),
+				Size = Vector3.new(0.7, 0.7, 0.7),
+				CFrame = eggMeshPart.CFrame * CFrame.new(gemOffset),
+				Color = Color3.fromRGB(255, 255, 255),
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+				Anchored = false,
+				Parent = pedModel,
+			})
+			local gMesh = Instance.new("SpecialMesh")
+			gMesh.MeshType = Enum.MeshType.Sphere
+			gMesh.Parent = gem
+			local gWeld = Instance.new("WeldConstraint")
+			gWeld.Part0 = eggMeshPart
+			gWeld.Part1 = gem
+			gWeld.Parent = gem
+		end
+
+		local pe1 = Instance.new("ParticleEmitter")
+		pe1.Color = ColorSequence.new(Color3.fromRGB(255, 240, 150), Color3.fromRGB(250, 204, 21))
+		pe1.Size = NumberSequence.new(0.9, 0.2)
+		pe1.Lifetime = NumberRange.new(1.5, 2.8)
+		pe1.Rate = 22
+		pe1.Speed = NumberRange.new(2.5, 5.0)
+		pe1.LightEmission = 1.0
+		pe1.SpreadAngle = Vector2.new(60, 60)
+		pe1.Parent = eggMeshPart
+
+		local pe2 = Instance.new("ParticleEmitter")
+		pe2.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(254, 240, 138))
+		pe2.Size = NumberSequence.new(0.35, 0.05)
+		pe2.Lifetime = NumberRange.new(2.0, 3.2)
+		pe2.Rate = 18
+		pe2.Speed = NumberRange.new(0.8, 2.2)
+		pe2.LightEmission = 1.0
+		pe2.SpreadAngle = Vector2.new(90, 90)
+		pe2.Parent = eggMeshPart
+	end
+
+	local pl = Instance.new("PointLight")
+	pl.Color = eggInfo.GlowColor
+	pl.Brightness = eggInfo.LightBrightness
+	pl.Range = if eggInfo.Theme == "Divine" then 24 else 16
+	pl.Parent = eggMeshPart
+
+	AttachFloatingBillboard(eggMeshPart, eggInfo.Title, "Harga: " .. eggInfo.CostText, eggInfo.GlowColor, 5.8)
 
 	local hatchPrompt = AttachPrompt(eggMeshPart, "Buka Menu Hatch Telur", eggInfo.Title, 16)
 	local function triggerEggHatch(player: Player)

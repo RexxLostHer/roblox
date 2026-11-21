@@ -115,8 +115,8 @@ local EGG_DATABASE: { [string]: { Title: string, Cost: number, Pets: { { Name: s
 			{ Name = "Bat",   Chance = "5%",  Rarity = "Legendary", Stat = "x30.0" },
 		},
 	},
-	Farm = {
-		Title = "Farm Egg",
+	Divine = {
+		Title = "Divine Egg",
 		Cost = 100000,
 		Pets = {
 			{ Name = "Pig",          Chance = "50%",   Rarity = "Common",    Stat = "x40.0" },
@@ -127,6 +127,7 @@ local EGG_DATABASE: { [string]: { Title: string, Cost: number, Pets: { { Name: s
 		},
 	},
 }
+EGG_DATABASE.Farm = EGG_DATABASE.Divine
 
 -- ============================================================
 --  UTIL
@@ -1383,7 +1384,7 @@ local function displayEgg(eggId: string)
 	end
 end
 
-for _, id in ipairs({ "Basic", "Forest", "Mythic", "Farm" }) do
+for _, id in ipairs({ "Basic", "Forest", "Mythic", "Divine" }) do
 	local b = make("TextButton", {
 		Size = UDim2.new(0.23, 0, 1, 0),
 		BackgroundColor3 = C_CREAM,

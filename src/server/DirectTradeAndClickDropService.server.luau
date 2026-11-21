@@ -163,7 +163,7 @@ _G.DeductPlayerClicks = function(plr: Player, amount: number): boolean
 	return false
 end
 
-local EGG_PRICES = { Basic = 250, Forest = 5000, Mythic = 25000, Farm = 100000 }
+local EGG_PRICES = { Basic = 250, Forest = 5000, Mythic = 25000, Divine = 100000, Farm = 100000 }
 local EGG_PET_DROPS = {
 	Basic = {
 		{ Name = "Dog", Weight = 50, Rarity = "Common", Stat = 1.2 },
@@ -182,7 +182,7 @@ local EGG_PET_DROPS = {
 		{ Name = "Hydra", Weight = 15, Rarity = "Epic", Stat = 18.0 },
 		{ Name = "Bat", Weight = 5, Rarity = "Legendary", Stat = 30.0 },
 	},
-	Farm = {
+	Divine = {
 		{ Name = "Pig", Weight = 50, Rarity = "Common", Stat = 40.0 },
 		{ Name = "Duck", Weight = 30, Rarity = "Rare", Stat = 65.0 },
 		{ Name = "Cow", Weight = 16, Rarity = "Epic", Stat = 100.0 },
@@ -190,6 +190,7 @@ local EGG_PET_DROPS = {
 		{ Name = "Apple Dragon", Weight = 0.25, Rarity = "Secret", Stat = 1200.0 },
 	},
 }
+EGG_PET_DROPS.Farm = EGG_PET_DROPS.Divine
 
 HatchEggRemoteServer.OnServerInvoke = function(plr: Player, eggId: string, count: number)
 	count = math.clamp(math.floor(count or 1), 1, 3)
