@@ -1450,12 +1450,14 @@ end
 local function requestCurrency(currType: string, amount: number)
 	local rem = getRemote("AdminGiveCurrencyFunction")
 	if not rem then
+		print("Failed to fetch remote AdminGiveCurrencyFunction")
 		showToast("Admin Remote belum siap!", true)
 		return
 	end
 	task.spawn(function()
 		local res = rem:InvokeServer(currType, amount)
 		if res and res.Success then
+			print("AdminGiveCurrencyFunction invoked successfully:", currType, amount)
 			showToast(res.Message, false)
 			if _G.SoundFX then _G.SoundFX.Play("Reward") end
 		else
