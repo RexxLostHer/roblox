@@ -240,6 +240,10 @@ local function UpdateLeaderstats(player: Player)
 	end
 end
 
+_G.UpdateLeaderstats = function(player: Player)
+	UpdateLeaderstats(player)
+end
+
 local ENCHANT_TIER_SCALING = {
 	[1] = 0.05,
 	[2] = 0.10,
