@@ -1402,6 +1402,174 @@ for _, id in ipairs({ "Basic", "Forest", "Mythic", "Divine" }) do
 end
 
 -- ============================================================
+--  MODAL: ADMIN DEBUG PANEL
+-- ============================================================
+local adminModal, adminBody = makeModal("🛠️  Admin Debug Panel", 500, 420)
+
+local adminScroll = make("ScrollingFrame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	CanvasSize = UDim2.new(),
+	AutomaticCanvasSize = Enum.AutomaticSize.Y,
+	ScrollBarThickness = 5,
+	ZIndex = 303,
+}, adminBody)
+make("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, adminScroll)
+make("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4) }, adminScroll)
+
+local function makeAdminSectionTitle(text: string, order: number)
+	return make("TextLabel", {
+		Size = UDim2.new(1, 0, 0, 22),
+		BackgroundTransparency = 1,
+		Text = text,
+		TextColor3 = C_NAVY,
+		Font = Enum.Font.FredokaOne,
+		TextSize = 15,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		LayoutOrder = order,
+		ZIndex = 304,
+	}, adminScroll)
+end
+
+local function makeAdminRow(order: number): Frame
+	local row = make("Frame", {
+		Size = UDim2.new(1, 0, 0, 38),
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+		ZIndex = 304,
+	}, adminScroll)
+	make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, row)
+	return row
+end
+
+local function requestCurrency(currType: string, amount: number)
+	local rem = getRemote("AdminGiveCurrencyFunction")
+	if not rem then
+		showToast("Admin Remote belum siap!", true)
+		return
+	end
+	task.spawn(function()
+		local res = rem:InvokeServer(currType, amount)
+		if res and res.Success then
+			showToast(res.Message, false)
+			if _G.SoundFX then _G.SoundFX.Play("Reward") end
+		else
+			showToast(res and res.Message or "Gagal menambah currency.", true)
+		end
+	end)
+end
+
+local function makeAdminBtn(parent: Instance, label: string, color: Color3, onClick: () -> ())
+	local b = make("TextButton", {
+		Size = UDim2.new(0.23, 0, 1, 0),
+		BackgroundColor3 = color,
+		Text = label,
+		Font = Enum.Font.FredokaOne,
+		TextColor3 = C_WHITE,
+		TextSize = 13,
+		AutoButtonColor = false,
+		Active = true,
+		ZIndex = 305,
+	}, parent)
+	corner(b, 10)
+	stroke(b, C_NAVY, 2)
+	b.Activated:Connect(onClick)
+	return b
+end
+
+-- Section 1: Instant Clicks
+makeAdminSectionTitle("⚡ INSTANT CLICKS (COINS)", 1)
+local clicksRow = makeAdminRow(2)
+makeAdminBtn(clicksRow, "+100K", C_BLUE, function() requestCurrency("Clicks", 100000) end)
+makeAdminBtn(clicksRow, "+1M", C_BLUE, function() requestCurrency("Clicks", 1000000) end)
+makeAdminBtn(clicksRow, "+50M", C_BLUE, function() requestCurrency("Clicks", 50000000) end)
+makeAdminBtn(clicksRow, "+1B", C_BLUE, function() requestCurrency("Clicks", 1000000000) end)
+
+-- Section 2: Gems & Rebirths
+makeAdminSectionTitle("💎 GEMS & 🔄 REBIRTHS", 3)
+local gemsRow = makeAdminRow(4)
+makeAdminBtn(gemsRow, "+10K 💎", C_PURPLE, function() requestCurrency("Gems", 10000) end)
+makeAdminBtn(gemsRow, "+1M 💎", C_PURPLE, function() requestCurrency("Gems", 1000000) end)
+makeAdminBtn(gemsRow, "+100 🔄", C_PINK, function() requestCurrency("Rebirths", 100) end)
+makeAdminBtn(gemsRow, "+10K 🔄", C_PINK, function() requestCurrency("Rebirths", 10000) end)
+
+-- Section 3: Custom Input
+makeAdminSectionTitle("✏️ CUSTOM INJECT AMOUNT", 5)
+local inputContainer = make("Frame", {
+	Size = UDim2.new(1, 0, 0, 40),
+	BackgroundColor3 = C_CREAM,
+	LayoutOrder = 6,
+	ZIndex = 304,
+}, adminScroll)
+corner(inputContainer, 12)
+stroke(inputContainer, C_NAVY, 2)
+
+local customInput = make("TextBox", {
+	Size = UDim2.new(1, -20, 1, 0),
+	Position = UDim2.fromOffset(10, 0),
+	BackgroundTransparency = 1,
+	PlaceholderText = "Ketik jumlah angka... (misal: 250000)",
+	PlaceholderColor3 = Color3.fromRGB(150, 160, 185),
+	Text = "",
+	Font = Enum.Font.FredokaOne,
+	TextColor3 = C_NAVY,
+	TextSize = 14,
+	ClearTextOnFocus = false,
+	ZIndex = 305,
+}, inputContainer)
+
+local customActionsRow = makeAdminRow(7)
+local function parseInput(): number
+	local str = customInput.Text:gsub(",", ""):gsub(" ", "")
+	return tonumber(str) or 0
+end
+
+local function makeCustomBtn(parent: Instance, label: string, color: Color3, currType: string)
+	local b = make("TextButton", {
+		Size = UDim2.new(0.31, 0, 1, 0),
+		BackgroundColor3 = color,
+		Text = label,
+		Font = Enum.Font.FredokaOne,
+		TextColor3 = C_WHITE,
+		TextSize = 13,
+		AutoButtonColor = false,
+		Active = true,
+		ZIndex = 305,
+	}, parent)
+	corner(b, 10)
+	stroke(b, C_NAVY, 2)
+	b.Activated:Connect(function()
+		local val = parseInput()
+		if val <= 0 then
+			showToast("Masukkan angka yang valid!", true)
+			return
+		end
+		requestCurrency(currType, val)
+	end)
+	return b
+end
+
+makeCustomBtn(customActionsRow, "+ Clicks", C_BLUE, "Clicks")
+makeCustomBtn(customActionsRow, "+ Gems", C_PURPLE, "Gems")
+makeCustomBtn(customActionsRow, "+ Rebirths", C_PINK, "Rebirths")
+
+make("TextLabel", {
+	Size = UDim2.new(1, 0, 0, 24),
+	BackgroundTransparency = 1,
+	Text = "💡 Klik tombol untuk inject saldo instan tanpa klik manual.",
+	Font = Enum.Font.FredokaOne,
+	TextColor3 = Color3.fromRGB(120, 130, 160),
+	TextSize = 12,
+	LayoutOrder = 8,
+	ZIndex = 304,
+}, adminScroll)
+
+-- ============================================================
 --  CUTSCENE HATCH
 -- ============================================================
 local cutscene = make("Frame", {
@@ -1626,6 +1794,7 @@ local rebirthB = makeSideButton(colA, "♻️", "Rebirth",  C_PINK,   4)
 local petsBtn  = makeSideButton(colB, "🐾", "Pets",     C_PURPLE, 1)
 local indexBtn = makeSideButton(colB, "📖", "Index",    C_BLUE,   2)
 local questBtn = makeSideButton(colB, "🏅", "Quests",   C_GOLD,   3)
+local adminBtn = makeSideButton(colB, "🛠️", "Admin",    C_RED,    4)
 
 local function closeLegacyModals()
 	if _G.RebirthHUD and _G.RebirthHUD.CloseAll then
@@ -1668,6 +1837,10 @@ rebirthB.Activated:Connect(function() openLegacyModal("Rebirth") end)
 petsBtn.Activated:Connect(function() openLegacyModal("Pets") end)
 indexBtn.Activated:Connect(function() openLegacyModal("Index") end)
 questBtn.Activated:Connect(function() openLegacyModal("Quests") end)
+adminBtn.Activated:Connect(function()
+	closeLegacyModals()
+	toggleModal(adminModal)
+end)
 
 -- ============================================================
 --  REMOTE LISTENERS
@@ -1736,6 +1909,7 @@ task.spawn(function()
 		v:GetPropertyChangedSignal("Value"):Connect(refresh)
 	end
 
+	bind("Clicks", statValues.Clicks)
 	bind("Rebirths", statValues.Rebirths)
 	bind("Gems", statValues.Gems)
 	bind("Eggs", statValues.Eggs)

@@ -149,6 +149,7 @@ local ClaimQuestRemote: RemoteFunction = GetOrCreateRemote("ClaimQuestFunction",
 local ClaimPlaytimeGiftRemote: RemoteFunction = GetOrCreateRemote("ClaimPlaytimeGiftFunction", "RemoteFunction")
 local SyncPlaytimeEvent: RemoteEvent = GetOrCreateRemote("SyncPlaytimeEvent", "RemoteEvent")
 local HatchExclusiveEggRemote: RemoteFunction = GetOrCreateRemote("HatchExclusiveEggFunction", "RemoteFunction")
+local AdminGiveCurrencyRemote: RemoteFunction = GetOrCreateRemote("AdminGiveCurrencyFunction", "RemoteFunction")
 
 local ActiveProfiles: { [number]: PlayerProfileData } = {}
 local ClickRateLimiter: { [number]: { WindowStart: number, Count: number } } = {}
@@ -1078,6 +1079,40 @@ HatchExclusiveEggRemote.OnServerInvoke = function(player: Player, amountToHatch:
 		Count = count,
 		Message = string.format("BERHASIL MEMBUKA %dx EXCLUSIVE FANTASY EGG!", count),
 	}
+end
+
+AdminGiveCurrencyRemote.OnServerInvoke = function(player: Player, currencyType: string, amount: number)
+	local profile = ActiveProfiles[player.UserId]
+	if not profile then
+		return { Success = false, Message = "Profile tidak ditemukan." }
+	end
+
+	amount = tonumber(amount) or 0
+	if amount <= 0 then
+		return { Success = false, Message = "Jumlah harus lebih besar dari 0." }
+	end
+
+	if currencyType == "Clicks" then
+		profile.Clicks += amount
+		UpdateLeaderstats(player)
+		local rem = ReplicatedStorage:FindFirstChild("Remotes")
+		local dataUpdate = if rem then rem:FindFirstChild("DataUpdate") :: RemoteEvent? else nil
+		if not dataUpdate then dataUpdate = ReplicatedStorage:FindFirstChild("DataUpdate") :: RemoteEvent? end
+		if dataUpdate then
+			dataUpdate:FireClient(player, profile.Clicks, 20, {})
+		end
+		return { Success = true, Message = string.format("+%s Clicks berhasil ditambahkan!", FormatNumber(amount)) }
+	elseif currencyType == "Gems" then
+		profile.Gems += amount
+		UpdateLeaderstats(player)
+		return { Success = true, Message = string.format("+%s Gems berhasil ditambahkan!", FormatNumber(amount)) }
+	elseif currencyType == "Rebirths" then
+		profile.Rebirths += amount
+		UpdateLeaderstats(player)
+		return { Success = true, Message = string.format("+%s Rebirths berhasil ditambahkan!", FormatNumber(amount)) }
+	end
+
+	return { Success = false, Message = "Currency tidak valid." }
 end
 
 local function LoadPlayerProfile(player: Player)
